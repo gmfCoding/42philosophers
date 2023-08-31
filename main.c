@@ -5,10 +5,9 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#include "philosophers.h"
-
 typedef struct s_philo	t_philo;
 typedef struct s_args	t_args;
+typedef pthread_mutex_t t_fork;
 
 struct s_args
 {
@@ -23,43 +22,93 @@ struct s_philo
 {
 	pthread_mutex_t stop;
 	pthread_t		thread;
+	pthread_t		observer;
 	t_fork	*left;
 	t_fork	*right;
 
 	int64_t id;
 	bool	dead;
-
+	int64_t	tsle;
 	int64_t eat;
 	int64_t sleep;
 	int64_t starve;
 };
 
-
-static	print_state(t_philo *philo, char *action)
+static bool	ft_isspace(char c)
 {
-	printf("%d %d %s\n", gettime_now() / 1000, philo->id, action);
+	bool istab;
+
+	istab = (c == '\t' || c == '\v');
+	return (c == '\n' || c == '\f' || c == '\r' || c == ' ' || istab);
 }
 
-void	observer(t_philo *philo)
+int32_t	ft_atoi(char *str)
 {
+	int32_t	negative;
+	int32_t	accum;
+
+	accum = 0;
+	negative = 1;
+	while (ft_isspace(*str))
+			str++;
+	if (*str == '-' || *str == '+')
+	{
+		if (*str == '-')
+			negative = -1;
+		str++;
+	}
+	while (*str >= '0' && *str <= '9')
+	{
+		accum = accum * 10 + (*str - '0');
+		str++;
+	}
+	return (accum * negative);
+}
+
+int64_t gettime_now(int64_t start)
+{
+	static int64_t begin;
+	int64_t us;
+	struct timeval time;
+
+	if (start != 0)
+		begin = gettime_now(0);
+	gettimeofday(&time, NULL);
+	us = time.tv_sec * 	1000000.0;
+	us += time.tv_usec;
+	return (us - begin);	
+}
+
+static void	print_state(t_philo *philo, char *action)
+{
+	printf("%ld %ld %s\n", gettime_now(0) / 1000, philo->id, action);
+}
+
+void	*observer(void *ptr)
+{
+	t_philo *const philo = ptr;
+
 	while (1)
 	{
-		pthread_mutex_lock(philo->stop);
-		if (philo->tsle + philo->starve < gettime_now())
+		pthread_mutex_lock(&philo->stop);
+		if (philo->tsle + philo->starve < gettime_now(0))
 		{
 			print_state(philo, "died");
 			philo->dead = true;
-			pthread_mutex_unlock(philo->stop);
+			pthread_mutex_unlock(&philo->stop);
 			break ;
 		}
-		pthread_mutex_unlock(philo->stop);
+		pthread_mutex_unlock(&philo->stop);
 	}
+	return (NULL);
 }
 
 
-void	routine(t_philo *philo)
+void	*routine(void *ptr)
 {
-	philo->tsle = gettime_now();
+	t_philo *const philo = ptr;
+
+	philo->tsle = gettime_now(0);
 	while (1)
 	{
 		print_state(philo, "is thinking");
@@ -69,16 +118,17 @@ void	routine(t_philo *philo)
 		print_state(philo, "has taken a fork");
 		pthread_mutex_lock(philo->right);	
 		print_state(philo, "has taken a fork");
-		pthread_mutex_lock(philo->stop);
-		if (philo->dead || philo->tsle + philo->starve < gettime_now())
+		pthread_mutex_lock(&philo->stop);
+		if (philo->dead || philo->tsle + philo->starve < gettime_now(0))
 			break;
-		philo->tsle = gettime_now();
-		pthread_mutex_unlock(philo->stop);
+		philo->tsle = gettime_now(0);
+		pthread_mutex_unlock(&philo->stop);
 		print_state(philo, "is eating");
 		usleep(philo->eat);
 		print_state(philo, "is sleeping");
 		usleep(philo->sleep);
 	}
+	return (NULL);
 }
 
 t_philo *construct(int count, t_args args)
@@ -99,18 +149,15 @@ t_philo *construct(int count, t_args args)
 		philos[i].sleep = args.sleeping_time;
 		philos[i].left = &forks[i];
 		philos[i].right = &forks[(i + 1) % count];
-		philos[i].next = &philos[(i + 1) % count];
 		i++;
 	}
 	return (&philos[0]);
 }
 
-t_args	initialise(int32_t argc, char **argv)
+bool	initialise(int32_t argc, char **argv, t_args *args)
 {
-	t_args args;
-
 	if (argc <= 1)
-		return (NULL);
+		return (false);
 	if (argc == 5)
 		args->cycles = ft_atoi(argv[4]);
 	if (argc >= 4)
@@ -120,7 +167,7 @@ t_args	initialise(int32_t argc, char **argv)
 		args->consumption_time = ft_atoi(argv[2]) * 1000;
 		args->sleeping_time = ft_atoi(argv[3]) * 1000;
 	}
-	return (args);
+	return (true);
 }
 
 int main(int argc, char **argv)
@@ -130,19 +177,22 @@ int main(int argc, char **argv)
 	t_args	args;
 	int32_t	i;
 
-	args = initialise(argc - 1, ++argv);
-	philos = construct(args->count, args);
+	if (initialise(argc - 1, ++argv, &args))
+		return (0);
+	philos = construct(args.count, args);
 	i = 0;
-	while (i < args->count)
+	gettime_now(1);
+	while (i < args.count)
 	{
 		pthread_create(&philos[i].thread, NULL, &routine, &philos[i]);
 		pthread_create(&philos[i].observer, NULL, &observer, &philos[i]);
 		i++;
 	}
 	i = 0;
-	while (i < args->count)
+	while (i < args.count)
 	{
 		current = &philos[i++];
 		pthread_join(current->thread, NULL);
 	}
+	return (0);
 }
