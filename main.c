@@ -79,8 +79,15 @@ int64_t gettime_now(int64_t start)
 	return (us - begin);	
 }
 
-static void	print_state(t_philo *philo, char *action)
+static void	print_state(t_philo *philo, bool wait, char *action)
 {
+	if (wait)
+	{
+		pthread_mutex_lock(&philo->stop);
+		if (philo->dead)
+			return ;
+		pthread_mutex_unlock(&philo->stop);
+	}
 	printf("%ld %ld %s\n", gettime_now(0) / 1000, philo->id, action);
 }
 
@@ -93,7 +100,7 @@ void	*observer(void *ptr)
 		pthread_mutex_lock(&philo->stop);
 		if (philo->tsle + philo->starve < gettime_now(0))
 		{
-			print_state(philo, "died");
+			print_state(philo, false, "died");
 			philo->dead = true;
 			pthread_mutex_unlock(&philo->stop);
 			break ;
@@ -111,21 +118,23 @@ void	*routine(void *ptr)
 	philo->tsle = gettime_now(0);
 	while (1)
 	{
-		print_state(philo, "is thinking");
+		print_state(philo, true, "is thinking");
 		if (philo->left == philo->right)
 			break;
 		pthread_mutex_lock(philo->left);	
-		print_state(philo, "has taken a fork");
+		print_state(philo, true, "has taken a fork");
 		pthread_mutex_lock(philo->right);	
-		print_state(philo, "has taken a fork");
+		print_state(philo, true, "has taken a fork");
 		pthread_mutex_lock(&philo->stop);
 		if (philo->dead || philo->tsle + philo->starve < gettime_now(0))
 			break;
 		philo->tsle = gettime_now(0);
 		pthread_mutex_unlock(&philo->stop);
-		print_state(philo, "is eating");
+		print_state(philo, true, "is eating");
 		usleep(philo->eat);
-		print_state(philo, "is sleeping");
+		pthread_mutex_unlock(philo->right);
+		pthread_mutex_unlock(philo->left);
+		print_state(philo, true, "is sleeping");
 		usleep(philo->sleep);
 	}
 	return (NULL);
@@ -157,7 +166,7 @@ t_philo *construct(int count, t_args args)
 bool	initialise(int32_t argc, char **argv, t_args *args)
 {
 	if (argc <= 1)
-		return (false);
+		return (true);
 	if (argc == 5)
 		args->cycles = ft_atoi(argv[4]);
 	if (argc >= 4)
@@ -167,7 +176,7 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 		args->consumption_time = ft_atoi(argv[2]) * 1000;
 		args->sleeping_time = ft_atoi(argv[3]) * 1000;
 	}
-	return (true);
+	return (false);
 }
 
 int main(int argc, char **argv)
@@ -182,6 +191,7 @@ int main(int argc, char **argv)
 	philos = construct(args.count, args);
 	i = 0;
 	gettime_now(1);
+	//routine(&philos[0]);
 	while (i < args.count)
 	{
 		pthread_create(&philos[i].thread, NULL, &routine, &philos[i]);
@@ -195,4 +205,10 @@ int main(int argc, char **argv)
 		pthread_join(current->thread, NULL);
 	}
 	return (0);
+}
+
+const char* __asan_default_options() { 
+	// REMOVE BEFORE EVAL
+	return "detect_leaks=0";
+	//return "";
 }
