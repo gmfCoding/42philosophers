@@ -3,36 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <pthread.h>
+#include <inttypes.h>
 
-typedef struct s_philo	t_philo;
-typedef struct s_args	t_args;
-typedef pthread_mutex_t t_fork;
-
-struct s_args
-{
-	int32_t	count;
-	int32_t	starvation_time;
-	int32_t	consumption_time;
-	int32_t	sleeping_time;
-	int32_t	cycles;
-};
-
-struct s_philo
-{
-	pthread_mutex_t stop;
-	pthread_t		thread;
-	pthread_t		observer;
-	t_fork	*left;
-	t_fork	*right;
-
-	int64_t id;
-	bool	dead;
-	int64_t	tsle;
-	int64_t eat;
-	int64_t sleep;
-	int64_t starve;
-};
+#include "philosophers.h"
 
 static bool	ft_isspace(char c)
 {
@@ -76,19 +49,51 @@ int64_t gettime_now(int64_t start)
 	gettimeofday(&time, NULL);
 	us = time.tv_sec * 	1000000.0;
 	us += time.tv_usec;
-	return (us - begin);	
+	return (us - begin);
 }
 
-static void	print_state(t_philo *philo, bool wait, char *action)
+const char *get_statemsg(t_action action)
 {
-	if (wait)
+	const	char* const	msg[] = 
+	{
+		[E_DIE] = "died",
+		[E_GRAB] = "has taken a fork",
+		[E_SLEEP] = "is sleeping",
+		[E_EAT] = "is eating",
+		[E_THINK] = "is thinking",
+	};
+
+	return (msg[action]);
+}
+
+static void	print_state(t_philo *philo, t_action action)
+{
+	pthread_mutex_t		lock = PTHREAD_MUTEX_INITIALIZER;
+	static bool			has_died = false;
+	const char* const	msg = get_statemsg(action);
+
+	pthread_mutex_lock(&lock);
+	if (has_died)
 	{
 		pthread_mutex_lock(&philo->stop);
+		philo->dead = true;
+		pthread_mutex_unlock(&philo->stop);
+		pthread_mutex_unlock(&lock);
+		return ;
+	}
+	printf("%ld %ld %s\n", gettime_now(0) / 1000, philo->id, msg);
+	if (action == E_DIE)
+	{
+		has_died = true;
+		pthread_mutex_lock(&philo->stop);
 		if (philo->dead)
+		{
+			pthread_mutex_unlock(&lock);
 			return ;
+		}
 		pthread_mutex_unlock(&philo->stop);
 	}
-	printf("%ld %ld %s\n", gettime_now(0) / 1000, philo->id, action);
+	pthread_mutex_unlock(&lock);
 }
 
 void	*observer(void *ptr)
@@ -100,16 +105,19 @@ void	*observer(void *ptr)
 		pthread_mutex_lock(&philo->stop);
 		if (philo->tsle + philo->starve < gettime_now(0))
 		{
-			print_state(philo, false, "died");
+			inta_set(philo->cancel, 1);
+			pthread_mutex_unlock(&philo->stop);
+			print_state(philo, E_DIE);
+			pthread_mutex_lock(&philo->stop);
 			philo->dead = true;
 			pthread_mutex_unlock(&philo->stop);
 			break ;
 		}
 		pthread_mutex_unlock(&philo->stop);
 	}
+	printf("Destroyed Observer thread: %"PRId64"\n", philo->id);
 	return (NULL);
 }
-
 
 void	*routine(void *ptr)
 {
@@ -118,25 +126,26 @@ void	*routine(void *ptr)
 	philo->tsle = gettime_now(0);
 	while (1)
 	{
-		print_state(philo, true, "is thinking");
-		if (philo->left == philo->right)
-			break;
+		print_state(philo, E_THINK);
 		pthread_mutex_lock(philo->left);	
-		print_state(philo, true, "has taken a fork");
+		print_state(philo, E_GRAB);
 		pthread_mutex_lock(philo->right);	
-		print_state(philo, true, "has taken a fork");
+		print_state(philo, E_GRAB);
 		pthread_mutex_lock(&philo->stop);
-		if (philo->dead || philo->tsle + philo->starve < gettime_now(0))
+		if (inta_get(philo->cancel) || philo->tsle + philo->starve < gettime_now(0))
 			break;
 		philo->tsle = gettime_now(0);
 		pthread_mutex_unlock(&philo->stop);
-		print_state(philo, true, "is eating");
+		print_state(philo, E_EAT);
 		usleep(philo->eat);
 		pthread_mutex_unlock(philo->right);
 		pthread_mutex_unlock(philo->left);
-		print_state(philo, true, "is sleeping");
+		print_state(philo, E_SLEEP);
 		usleep(philo->sleep);
 	}
+	pthread_mutex_unlock(philo->right);
+	pthread_mutex_unlock(philo->left);
+	printf("Destroyed Routine thread: %"PRId64"\n", philo->id);
 	return (NULL);
 }
 
@@ -145,13 +154,19 @@ t_philo *construct(int count, t_args args)
 	t_philo		*philos;
 	t_fork		*forks;
 	int			i;
+	t_inta64	cancel = {PTHREAD_MUTEX_INITIALIZER, 0};
+	t_inta64	*mcancel;
 
+	mcancel = malloc(sizeof (t_inta64));
+	*mcancel = cancel;	
 	forks = calloc(count, sizeof(t_fork));
 	philos = calloc(count, sizeof(t_philo));
 	i = 0;
+
 	while (i < count)
 	{
 		pthread_mutex_init(&forks[i], NULL);
+		philos[i].cancel = mcancel;
 		philos[i].id = i + 1;
 		philos[i].starve = args.starvation_time;
 		philos[i].eat = args.consumption_time;
@@ -187,6 +202,8 @@ int main(int argc, char **argv)
 	int32_t	i;
 
 	if (initialise(argc - 1, ++argv, &args))
+		return (0);
+	if (args.count <= 1)
 		return (0);
 	philos = construct(args.count, args);
 	i = 0;
