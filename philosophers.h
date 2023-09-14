@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/13 18:12:13 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/14 00:44:35 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,16 +55,19 @@ struct s_philo
 	pthread_mutex_t stop;
 	pthread_t		thread;
 	pthread_t		observer;
+	t_inta64		*wait;
 	t_inta64		*cancel;
 
 	t_fork	*left;
 	t_fork	*right;
+	bool	nobias;
 
 	int64_t id;
 	bool	dead;
 	int64_t	tsle;
 	int16_t	eaten;
-	
+	int64_t time;
+
 	int64_t eat;
 	int64_t sleep;
 	int64_t starve;
