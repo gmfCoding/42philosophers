@@ -122,26 +122,19 @@ void	*observer(void *ptr)
 void	*routine(void *ptr)
 {
 	t_philo *const philo = ptr;
-	
 	while (inta_get(philo->wait) == 1)
 		usleep(10);
 	if (philo->id % 2 == 0)
 		usleep(1000);
 	philo->tsle = gettime_now(0);
-	while (1)
+	while (inta_get(philo->cancel) == 0)
 	{
-		if (philo->nobias)
-		{
-			print_state(philo, E_THINK);
-			pthread_mutex_lock(philo->left);	
-			print_state(philo, E_GRAB);
-			pthread_mutex_lock(philo->right);	
-			print_state(philo, E_GRAB);
-		}
-		philo->nobias = true;
+		print_state(philo, E_THINK);
+		pthread_mutex_lock(philo->left);
+		print_state(philo, E_GRAB);
+		pthread_mutex_lock(philo->right);
+		print_state(philo, E_GRAB);
 		pthread_mutex_lock(&philo->stop);
-		if (inta_get(philo->cancel) || philo->tsle + philo->starve < gettime_now(0))
-			break;
 		philo->tsle = gettime_now(0) - philo->time;
 		pthread_mutex_unlock(&philo->stop);
 		print_state(philo, E_EAT);
@@ -183,16 +176,7 @@ t_philo *construct(int count, t_args args)
 		philo->sleep = args.sleeping_time;
 		philo->left = &forks[i];
 		philo->right = &forks[(i + 1) % count];
-		philo->nobias = !(i % 2 == 0);
 		philo->time = gettime_now(0);
-		if (i % 2 == 0)
-		{
-			print_state(philo, E_THINK);
-			pthread_mutex_lock(philo->left);	
-			print_state(philo, E_GRAB);
-			pthread_mutex_lock(philo->right);	
-			print_state(philo, E_GRAB);	
-		}
 		i++;
 	}
 	return (&philos[0]);

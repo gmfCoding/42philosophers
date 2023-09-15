@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/14 00:44:35 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/15 16:47:26 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,6 @@ struct s_philo
 
 	t_fork	*left;
 	t_fork	*right;
-	bool	nobias;
 
 	int64_t id;
 	bool	dead;
