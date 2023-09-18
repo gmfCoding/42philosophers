@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/15 16:47:26 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/17 17:44:37 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,7 @@ struct s_philo
 	pthread_t		observer;
 	t_inta64		*wait;
 	t_inta64		*cancel;
+	t_action		prev_action;
 
 	t_fork	*left;
 	t_fork	*right;

@@ -69,6 +69,9 @@ static void	print_state(t_philo *philo, t_action action)
 	static bool			has_died = false;
 	const char* const	msg = get_statemsg(action);
 
+	if (philo->prev_action == action)
+		return ;
+	philo->prev_action = action;
 	pthread_mutex_lock(&lock);
 	if (has_died)
 	{
@@ -101,18 +104,6 @@ void	*observer(void *ptr)
 		usleep(10);
 	while (1)
 	{
-		pthread_mutex_lock(&philo->stop);
-		if ((philo->tsle + philo->starve) < (gettime_now(0) - philo->time))
-		{
-			inta_set(philo->cancel, 1);
-			pthread_mutex_unlock(&philo->stop);
-			print_state(philo, E_DIE);
-			pthread_mutex_lock(&philo->stop);
-			philo->dead = true;
-			pthread_mutex_unlock(&philo->stop);
-			break ;
-		}
-		pthread_mutex_unlock(&philo->stop);
 		usleep(5);
 	}
 	printf("Destroyed Observer thread: %"PRId64"\n", philo->id);
@@ -122,11 +113,10 @@ void	*observer(void *ptr)
 void	*routine(void *ptr)
 {
 	t_philo *const philo = ptr;
-	while (inta_get(philo->wait) == 1)
-		usleep(10);
 	if (philo->id % 2 == 0)
-		usleep(1000);
-	philo->tsle = gettime_now(0);
+		print_state(philo, E_THINK);
+	if (philo->id % 2 == 0)
+		usleep(philo->eat - 1000);
 	while (inta_get(philo->cancel) == 0)
 	{
 		print_state(philo, E_THINK);
@@ -146,7 +136,7 @@ void	*routine(void *ptr)
 	}
 	pthread_mutex_unlock(philo->right);
 	pthread_mutex_unlock(philo->left);
-	printf("Destroyed Routine thread: %"PRId64"\n", philo->id);
+	printf("Destroyed Routine thread: %"PRId64"\n", philo->id); // REMOVE
 	return (NULL);
 }
 
@@ -164,6 +154,8 @@ t_philo *construct(int count, t_args args)
 	forks = calloc(count, sizeof(t_fork));
 	philos = calloc(count, sizeof(t_philo));
 	i = 0;
+
+	int64_t time = gettime_now(0);
 	while (i < count)
 	{
 		philo = &philos[i];
@@ -176,7 +168,9 @@ t_philo *construct(int count, t_args args)
 		philo->sleep = args.sleeping_time;
 		philo->left = &forks[i];
 		philo->right = &forks[(i + 1) % count];
-		philo->time = gettime_now(0);
+		philo->time = time;
+		philo->tsle = time;
+		philo->prev_action = E_DIE;
 		i++;
 	}
 	return (&philos[0]);
@@ -195,8 +189,31 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 		args->consumption_time = ft_atoi(argv[2]) * 1000;
 		args->sleeping_time = ft_atoi(argv[3]) * 1000;
 	}
+	if (args->count <= 0 || args->starvation_time <= 60)
+		return (true);
+	if (args->consumption_time <= 60 * 1000 || args->starvation_time <= 60 * 1000)
+		return (true);
+	if (args->sleeping_time <= 60 * 1000) // Should these be 60?
+		return (true);
 	return (false);
 }
+
+#include <dlfcn.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+
+void sigUsr1Handler(int sig)
+{
+    fprintf(stderr, "Exiting on SIGUSR1\n");
+    void (*_mcleanup)(void);
+    _mcleanup = (void (*)(void))dlsym(RTLD_DEFAULT, "_mcleanup");
+    if (_mcleanup == NULL)
+         fprintf(stderr, "Unable to find gprof exit hook\n");
+    else _mcleanup();
+    _exit(0);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -204,7 +221,9 @@ int main(int argc, char **argv)
 	t_philo *current;
 	t_args	args;
 	int32_t	i;
-
+	t_philo	*philo;
+	
+	signal(SIGINT, sigUsr1Handler);
 	if (initialise(argc - 1, ++argv, &args))
 		return (0);
 	if (args.count <= 1)
@@ -215,19 +234,42 @@ int main(int argc, char **argv)
 	while (i < args.count)
 	{
 		pthread_create(&philos[i].thread, NULL, &routine, &philos[i]);
-		pthread_create(&philos[i].observer, NULL, &observer, &philos[i]);
 		i++;
 	}
 	gettime_now(1);
 	inta_set(philos[0].wait, 0);
-	i = 0;
-	while (i < args.count)
-	{
-		current = &philos[i++];
-		pthread_join(current->thread, NULL);
-	}
+	wait_death(philos, args);
 	return (0);
 }
+
+void wait_death(t_philo *philos, t_args args)
+{
+	t_philo *philo;
+	size_t	i;
+	while (inta_get(philos[0].cancel) == 0)
+	{
+		i = 0;
+		while (inta_get(philos[0].cancel) == 0 && i < args.count)
+		{
+			philo = &philos[i];
+			pthread_mutex_lock(&philo->stop);
+			if ((philo->tsle + philo->starve) < (gettime_now(0) - philo->time))
+			{
+				inta_set(philo->cancel, 1);
+				pthread_mutex_unlock(&philo->stop);
+				print_state(philo, E_DIE);
+				pthread_mutex_lock(&philo->stop);
+				philo->dead = true;
+				pthread_mutex_unlock(&philo->stop);
+				return ;
+			}
+			pthread_mutex_unlock(&philo->stop);
+			i++;
+		}
+		usleep(5000);
+	}
+}
+
 
 const char* __asan_default_options() { 
 	// REMOVE BEFORE EVAL
