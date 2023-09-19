@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include "philosophers.h"
 
@@ -65,35 +66,28 @@ const char *get_statemsg(t_action action)
 
 static void	print_state(t_philo *philo, t_action action)
 {
-	static pthread_mutex_t		lock = PTHREAD_MUTEX_INITIALIZER;
-	static bool			has_died = false;
-	const char* const	msg = get_statemsg(action);
+	static t_inta64		has_died = {PTHREAD_MUTEX_INITIALIZER, 0};
+	const char *const	msg = get_statemsg(action);
 
 	if (philo->prev_action == action)
 		return ;
 	philo->prev_action = action;
-	pthread_mutex_lock(&lock);
-	if (has_died)
+	if (inta_get(&has_died) == 1 || inta_get(philo->cancel) != 0)
 	{
 		pthread_mutex_lock(&philo->stop);
 		philo->dead = true;
 		pthread_mutex_unlock(&philo->stop);
-		pthread_mutex_unlock(&lock);
 		return ;
 	}
 	printf("%ld %ld %s\n", (gettime_now(0) - philo->time) / 1000, philo->id, msg);
 	if (action == E_DIE)
 	{
-		has_died = true;
+		inta_set(&has_died, 1);
 		pthread_mutex_lock(&philo->stop);
 		if (philo->dead)
-		{
-			pthread_mutex_unlock(&lock);
 			return ;
-		}
 		pthread_mutex_unlock(&philo->stop);
 	}
-	pthread_mutex_unlock(&lock);
 }
 
 void	*observer(void *ptr)
@@ -113,6 +107,8 @@ void	*observer(void *ptr)
 void	*routine(void *ptr)
 {
 	t_philo *const philo = ptr;
+	while (inta_get(philo->wait) == 1)
+		usleep(50);
 	if (philo->id % 2 == 0)
 		print_state(philo, E_THINK);
 	if (philo->id % 2 == 0)
@@ -126,8 +122,9 @@ void	*routine(void *ptr)
 		print_state(philo, E_GRAB);
 		pthread_mutex_lock(&philo->stop);
 		philo->tsle = gettime_now(0) - philo->time;
-		pthread_mutex_unlock(&philo->stop);
 		print_state(philo, E_EAT);
+		philo->eaten++;
+		pthread_mutex_unlock(&philo->stop);
 		usleep(philo->eat);
 		pthread_mutex_unlock(philo->right);
 		pthread_mutex_unlock(philo->left);
@@ -170,6 +167,7 @@ t_philo *construct(int count, t_args args)
 		philo->right = &forks[(i + 1) % count];
 		philo->time = time;
 		philo->tsle = time;
+		philo->eaten = 0;
 		philo->prev_action = E_DIE;
 		i++;
 	}
@@ -182,6 +180,8 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 		return (true);
 	if (argc == 5)
 		args->cycles = ft_atoi(argv[4]);
+	else
+		args->cycles = 0;
 	if (argc >= 4)
 	{
 		args->count = ft_atoi(argv[0]);
@@ -198,22 +198,23 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 	return (false);
 }
 
-#include <dlfcn.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <signal.h>
+/*#include <dlfcn.h>*/
+/*#include <stdio.h>*/
+/*#include <unistd.h>*/
+/*#include <signal.h>*/
 
-void sigUsr1Handler(int sig)
-{
-    fprintf(stderr, "Exiting on SIGUSR1\n");
-    void (*_mcleanup)(void);
-    _mcleanup = (void (*)(void))dlsym(RTLD_DEFAULT, "_mcleanup");
-    if (_mcleanup == NULL)
-         fprintf(stderr, "Unable to find gprof exit hook\n");
-    else _mcleanup();
-    _exit(0);
-}
+/*void sigUsr1Handler(int sig)*/
+/*{*/
+/*    fprintf(stderr, "Exiting on SIGUSR1\n");*/
+/*    void (*_mcleanup)(void);*/
+/*    _mcleanup = (void (*)(void))dlsym(RTLD_DEFAULT, "_mcleanup");*/
+/*    if (_mcleanup == NULL)*/
+/*         fprintf(stderr, "Unable to find gprof exit hook\n");*/
+/*    else _mcleanup();*/
+/*    _exit(0);*/
+/*}*/
 
+void wait_death(t_philo *philos, t_args args);
 
 int main(int argc, char **argv)
 {
@@ -223,7 +224,7 @@ int main(int argc, char **argv)
 	int32_t	i;
 	t_philo	*philo;
 	
-	signal(SIGINT, sigUsr1Handler);
+//	signal(SIGINT, sigUsr1Handler);
 	if (initialise(argc - 1, ++argv, &args))
 		return (0);
 	if (args.count <= 1)
@@ -235,37 +236,78 @@ int main(int argc, char **argv)
 	{
 		pthread_create(&philos[i].thread, NULL, &routine, &philos[i]);
 		i++;
-	}
+	}	
 	gettime_now(1);
 	inta_set(philos[0].wait, 0);
 	wait_death(philos, args);
 	return (0);
 }
 
+typedef enum e_eachres t_eachres;
+
+enum	e_eachres
+{
+	E_CANCEL,
+	E_CONTINUE,
+};
+typedef struct s_waitdeathctx	t_waitdeathctx;
+struct	s_waitdeathctx
+{
+	int16_t	min_eat;
+};
+
+typedef t_eachres (*t_onphilo_fn)(t_philo *, int i, void *ctx);
+
+int	foreach_philo(t_philo *start, int size, void *ctx, t_onphilo_fn f)
+{
+	size_t	i;
+	
+	i = 0;
+	while (i < size)
+	{
+		if (f(&start[i], i, ctx) == E_CANCEL)
+			return (i);
+		i++;
+	}
+	return (i);
+}
+
+t_eachres	on_each_philo(t_philo *philo, int i, void *ctx)
+{
+	t_waitdeathctx	*const wd = ctx;
+
+	if (inta_get(philo->cancel) == 1)
+		return (E_CANCEL);
+	pthread_mutex_lock(&philo->stop);
+	if (philo->eaten < wd->min_eat)
+		wd->min_eat = philo->eaten;
+	if ((philo->tsle + philo->starve) < (gettime_now(0) - philo->time))
+	{
+		inta_set(philo->cancel, 1);
+		pthread_mutex_unlock(&philo->stop);
+		print_state(philo, E_DIE);
+		pthread_mutex_lock(&philo->stop);
+		philo->dead = true;
+		pthread_mutex_unlock(&philo->stop);
+		return E_CANCEL;
+	}
+	pthread_mutex_unlock(&philo->stop);
+}
+
 void wait_death(t_philo *philos, t_args args)
 {
-	t_philo *philo;
-	size_t	i;
+	t_philo			*philo;
+	size_t			i;
+	int				min_eat;
+	t_waitdeathctx	ctx;
+	
 	while (inta_get(philos[0].cancel) == 0)
 	{
+		ctx = (t_waitdeathctx){INT16_MAX};
 		i = 0;
-		while (inta_get(philos[0].cancel) == 0 && i < args.count)
-		{
-			philo = &philos[i];
-			pthread_mutex_lock(&philo->stop);
-			if ((philo->tsle + philo->starve) < (gettime_now(0) - philo->time))
-			{
-				inta_set(philo->cancel, 1);
-				pthread_mutex_unlock(&philo->stop);
-				print_state(philo, E_DIE);
-				pthread_mutex_lock(&philo->stop);
-				philo->dead = true;
-				pthread_mutex_unlock(&philo->stop);
-				return ;
-			}
-			pthread_mutex_unlock(&philo->stop);
-			i++;
-		}
+		foreach_philo(philos, args.count, &ctx, on_each_philo);
+		if (args.cycles > 0 && ctx.min_eat >= args.cycles)
+			inta_set(philos[0].cancel, 1);
 		usleep(5000);
 	}
 }
