@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:41:16 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 22:44:33 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/20 23:25:23 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,21 +44,8 @@ int	main(int argc, char **argv)
 	}
 	inta_set(philos[0].wait, 0);
 	wait_death(philos, args);
+	cleanup(philos);
 	return (0);
-}
-
-int	foreach_philo(t_philo *start, size_t size, void *ctx, t_onphilo_fn f)
-{
-	size_t	i;
-
-	i = 0;
-	while (i < size)
-	{
-		if (f(&start[i], i, ctx) == E_CANCEL)
-			return (i);
-		i++;
-	}
-	return (i);
 }
 
 t_eachres	on_each_philo(t_philo *philo, int i, void *ctx)
@@ -80,6 +67,14 @@ t_eachres	on_each_philo(t_philo *philo, int i, void *ctx)
 	return (E_CONTINUE);
 }
 
+t_eachres	on_wait_thread_exit(t_philo *philo, int i, void *ctx)
+{
+	(void)i;
+	(void)ctx;
+	pthread_join(philo->thread, NULL);
+	return (E_CONTINUE);
+}
+
 void	wait_death(t_philo *philos, t_args args)
 {
 	t_waitdeathctx	ctx;
@@ -92,9 +87,5 @@ void	wait_death(t_philo *philos, t_args args)
 			inta_set(philos[0].cancel, 1);
 		usleep(5000);
 	}
-}
-
-const char*	__asan_default_options() { 
-	// REMOVE BEFORE EVAL
-	return "detect_leaks=0";
+	foreach_philo(philos, args.count, NULL, on_wait_thread_exit);
 }

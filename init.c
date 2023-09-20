@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:17:03 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 22:47:48 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/20 22:54:52 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include <stdbool.h>
@@ -50,8 +50,8 @@ t_philo	*construct(t_args args)
 	mcancel = malloc(sizeof (t_inta64) * 2);
 	mcancel[0] = inta_init(0);
 	mcancel[1] = inta_init(1);
-	forks = calloc(args.count, sizeof(t_fork));
-	philos = calloc(args.count, sizeof(t_philo));
+	forks = malloc(args.count * sizeof(t_fork));
+	philos = malloc(args.count * sizeof(t_philo));
 	i = -1;
 	while (++i < args.count)
 	{

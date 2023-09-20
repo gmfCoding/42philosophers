@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/19 14:35:35 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 22:41:05 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/20 23:25:00 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include <stdlib.h>
@@ -41,4 +41,25 @@ int32_t	ft_atoi(char *str)
 		str++;
 	}
 	return (accum * negative);
+}
+
+int	foreach_philo(t_philo *start, size_t size, void *ctx, t_onphilo_fn f)
+{
+	size_t	i;
+
+	i = 0;
+	while (i < size)
+	{
+		if (f(&start[i], i, ctx) == E_CANCEL)
+			return (i);
+		i++;
+	}
+	return (i);
+}
+
+void	cleanup(t_philo *philos)
+{
+	free(philos[0].cancel);
+	free(philos[0].left);
+	free(philos);
 }

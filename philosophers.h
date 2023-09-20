@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 22:42:14 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/20 23:24:29 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #ifndef PHILOSOPHERS_H
@@ -68,7 +68,6 @@ struct s_args
 struct s_philo
 {
 	pthread_t	thread;
-	pthread_t	observer;
 	t_inta64	*wait;
 	t_inta64	*cancel;
 	t_action	prev_action;
@@ -110,8 +109,22 @@ void		*routine(void *ptr);
 int64_t		gettime_now(void);
 
 /* utils.c */
+/* Converts a string to an integer */
 int32_t		ft_atoi(char *str);
 
+/* Runs the function `f` for size amount of philos located at start */
+int			foreach_philo(
+				t_philo *start,
+				size_t size,
+				void *ctx,
+				t_onphilo_fn f);
+
+/* Free all forks, mutexes and philosophers */
+void		cleanup(t_philo *philos);
+
+/* Manages philosophrse starvation and eating count
+ * Returns when all threads have closed.
+ */
 void		wait_death(t_philo *philos, t_args args);
 
 /* atomic.c */
