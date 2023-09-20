@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/17 17:44:37 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/20 21:58:24 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,15 +44,14 @@ enum e_action
 struct s_args
 {
 	int32_t	count;
-	int32_t	starvation_time;
-	int32_t	consumption_time;
-	int32_t	sleeping_time;
+	int32_t	ttd;
+	int32_t	tte;
+	int32_t	tts;
 	int32_t	cycles;
 };
 
 struct s_philo
 {
-	pthread_mutex_t stop;
 	pthread_t		thread;
 	pthread_t		observer;
 	t_inta64		*wait;
@@ -63,19 +62,26 @@ struct s_philo
 	t_fork	*right;
 
 	int64_t id;
-	bool	dead;
-	int64_t	tsle;
-	int16_t	eaten;
+	t_inta64	dead;
+	t_inta64	tsle;
+	t_inta64	eaten;
 	int64_t time;
 
-	int64_t eat;
-	int64_t sleep;
-	int64_t starve;
+	int64_t tte;
+	int64_t tts;
+	int64_t ttd;
 	int16_t	maxeat;
 };
 
+/* Generates a new list of intialised philosophers */
+t_philo	*construct(t_args args);
+
+void	change_state(t_philo *philo, t_action action);
+int64_t gettime_now(void);
+int32_t	ft_atoi(char *str);
 
 /* atomic.c */
+t_inta64	inta_init(int64_t val);
 t_inta64	*inta_add(t_inta64 *a, int64_t v);
 t_inta64	*inta_set(t_inta64 *a, int64_t v);
 int64_t		inta_get(t_inta64 *a);

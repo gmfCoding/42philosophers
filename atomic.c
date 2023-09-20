@@ -1,5 +1,10 @@
 #include "philosophers.h"
 
+t_inta64	inta_init(int64_t val)
+{
+	return (t_inta64){PTHREAD_MUTEX_INITIALIZER, val};
+}
+
 t_inta64 *inta_add(t_inta64 *a, int64_t v)
 {
 	pthread_mutex_lock(&a->thread);
