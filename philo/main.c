@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:41:16 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 23:25:23 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/20 23:31:15 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,8 +59,8 @@ t_eachres	on_each_philo(t_philo *philo, int i, void *ctx)
 		wd->min_eat = inta_get(&philo->eaten);
 	if ((inta_get(&philo->tsle) + philo->ttd) < gettime_now())
 	{
-		inta_set(philo->cancel, 1);
 		change_state(philo, E_DIE);
+		inta_set(philo->cancel, 1);
 		inta_set(&philo->dead, true);
 		return (E_CANCEL);
 	}
