@@ -1,6 +1,8 @@
 NAME        = philo
 BUILD_DIR   = .build
 SRC_DIR     = ./
+INCS		= ./
+
 
 SRCS        =	main.c \
 				init.c \
@@ -16,8 +18,6 @@ DEPS        = $(OBJS:.o=.d)
 CC          = cc
 CFLAGS      = -Wall -Wextra -Werror -g3 $(DFLAGS)
 CPPFLAGS    = $(addprefix -I,$(INCS)) -MMD -MP
-LDFLAGS     = $(addprefix -L,$(dir $(LIBS_TARGET)))
-LDLIBS      = $(addprefix -l,$(LIBS))
 
 RM          = rm -f
 DIR_DUP     = mkdir -p $(@D)
@@ -25,24 +25,26 @@ DIR_DUP     = mkdir -p $(@D)
 all: $(NAME)
 
 $(NAME): $(OBJS)
+	@printf "${BLUE}"
 	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(NAME) $(DFLAGS)
 
 $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	@printf "${GREEN}"
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR):
+	@printf "${CYAN}"
 	$(DIR_DUP)
 
 # cleans only the project.
 clean:
+	@printf "${RED}"
 	$(RM) $(OBJS) $(DEPS)
-	$(call print_clean,$(addsuffix \n,$(OBJS)))
 
-# full clean, clean all objects and libraries and binaries
+# full clean, clean all objects and binaries
 fclean: clean
-	# for f in $(dir $(LIBS_TARGET)); do $(MAKE) -C $$f fclean; done
+	@printf "${RED}"
 	$(RM) $(NAME)
-	$(call print_fclean,$(NAME))
 
 re: fclean all
 
@@ -53,8 +55,9 @@ re: fclean all
 export DFLAGS
 
 # COLORS
-export GREEN = \033[1;32m
+export RED = \033[0;31m
+export GREEN = \033[0;32m
 export YELLOW = \033[0;33m
-export BLUE = \033[1;34m
-export CYAN = \033[1;36m
+export BLUE = \033[0;34m
+export CYAN = \033[0;36m
 export NC = \033[0m
