@@ -6,13 +6,14 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/19 14:56:31 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/21 16:15:16 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 17:01:45 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philosophers.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 const char	*get_statemsg(t_action action)
 {
@@ -44,9 +45,9 @@ void	change_state(t_philo *ph, t_action action)
 		return ;
 	}
 	if (ph->print)
-		printf("%lld %lld %s\n", timestamp, ph->id, msg);
+		printf("%"PRId64" %"PRId64" %s\n", timestamp, ph->id, msg);
 	else
-		printf("%lld %lld %s \r%s\r", timestamp, ph->id, msg, clear);
+		printf("%"PRId64" %"PRId64" %s \r%s\r", timestamp, ph->id, msg, clear);
 	if (action == E_DIE)
 	{
 		inta_set(&has_died, 1);
