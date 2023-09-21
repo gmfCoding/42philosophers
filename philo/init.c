@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:17:03 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/21 13:21:43 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 16:11:52 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include <stdbool.h>
@@ -40,13 +40,16 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 
 t_philo	create_philo(int i, t_inta64 *mcancel, t_fork *forks, t_args args)
 {
-	t_philo philo;
+	t_philo	philo;
+
 	philo = (t_philo){
 		.id = i + 1, .prev_action = E_DIE,
 		.cancel = &mcancel[0], .wait = &mcancel[1],
 		.tte = args.tte, .tts = args.tts, .ttd = args.ttd,
-		.left = &forks[i], .right = &forks[(i + 1) % args.count],
-		.tsle = inta_init(0), .eaten = inta_init(0),
+		.left = &forks[i],
+		.right = &forks[(i + 1) % (args.count + (PH_UEF != 0))],
+		.tsle = inta_init(0), .eaten = inta_init(0), .print = true,
+		.rte = 0,
 	};
 	return (philo);
 }
@@ -62,7 +65,7 @@ t_philo	*construct(t_args args)
 	mcancel[0] = inta_init(0);
 	mcancel[1] = inta_init(1);
 	philos = malloc(args.count * sizeof(t_philo));
-	forks = malloc(args.count * sizeof(t_fork));
+	forks = malloc(args.count + (PH_UEF != 0) * sizeof(t_fork));
 	i = -1;
 	while (++i < args.count)
 	{

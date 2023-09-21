@@ -10,7 +10,6 @@ SRCS        =	main.c \
 				state.c \
 				time.c \
 				utils.c \
-				measure.c \
 
 SRCS        := $(SRCS:%=$(SRC_DIR)/%)
 OBJS        = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
