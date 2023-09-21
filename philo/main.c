@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:41:16 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 23:31:15 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 11:15:17 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,6 @@ int	main(int argc, char **argv)
 	int32_t	i;
 
 	if (initialise(argc - 1, ++argv, &args))
-		return (0);
-	if (args.count <= 1)
 		return (0);
 	philos = construct(args);
 	i = 0;

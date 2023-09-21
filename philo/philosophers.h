@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 23:24:29 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 12:27:04 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #ifndef PHILOSOPHERS_H

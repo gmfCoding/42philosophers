@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:17:03 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/20 22:54:52 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 12:27:22 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include <stdbool.h>
@@ -29,11 +29,11 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 		args->tte = ft_atoi(argv[2]) * 1000;
 		args->tts = ft_atoi(argv[3]) * 1000;
 	}
-	if (args->cycles < 0 || args->count <= 0 || args->ttd <= 60)
+	if (args->cycles < 0 || args->count <= 0 || args->ttd < 60)
 		return (true);
-	if (args->tte <= 60 * 1000 || args->ttd <= 60 * 1000)
+	if (args->tte < 60 * 1000 || args->ttd < 60 * 1000)
 		return (true);
-	if (args->tts <= 60 * 1000)
+	if (args->tts < 60 * 1000)
 		return (true);
 	return (false);
 }

@@ -55,11 +55,11 @@ void	*routine(void *ptr)
 
 	while (inta_get(philo->wait) == 1)
 		usleep(50);
-	if (philo->id % 2 == 0)
+	if (philo->id % 2 != 0)
 		change_state(philo, E_THINK);
-	if (philo->id % 2 == 0)
+	if (philo->id % 2 != 0)
 		usleep(philo->tte - 1000);
-	while (inta_get(philo->cancel) == 0)
+	while (philo->left != philo->right && inta_get(philo->cancel) == 0)
 	{
 		change_state(philo, E_THINK);
 		pthread_mutex_lock(philo->left);
