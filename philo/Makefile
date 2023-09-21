@@ -20,7 +20,6 @@ CFLAGS      = -Wall -Wextra -Werror -g3 $(DFLAGS)
 CPPFLAGS    = $(addprefix -I,$(INCS)) -MMD -MP
 
 RM          = rm -f
-DIR_DUP     = mkdir -p $(@D)
 
 all: $(NAME)
 
@@ -28,13 +27,13 @@ $(NAME): $(OBJS)
 	@printf "${BLUE}"
 	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(NAME) $(DFLAGS)
 
-$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR)
+$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	@printf "${GREEN}"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR):
 	@printf "${CYAN}"
-	$(DIR_DUP)
+	mkdir -p $(BUILD_DIR)
 
 # cleans only the project.
 clean:
@@ -50,7 +49,7 @@ re: fclean all
 
 -include $(DEPS)
 
-.PHONY: re fclean clean lclean all
+.PHONY: re fclean clean all
 
 export DFLAGS
 
