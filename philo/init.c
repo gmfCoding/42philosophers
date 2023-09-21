@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:17:03 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/21 12:27:22 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 13:21:43 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include <stdbool.h>
@@ -38,31 +38,36 @@ bool	initialise(int32_t argc, char **argv, t_args *args)
 	return (false);
 }
 
+t_philo	create_philo(int i, t_inta64 *mcancel, t_fork *forks, t_args args)
+{
+	t_philo philo;
+	philo = (t_philo){
+		.id = i + 1, .prev_action = E_DIE,
+		.cancel = &mcancel[0], .wait = &mcancel[1],
+		.tte = args.tte, .tts = args.tts, .ttd = args.ttd,
+		.left = &forks[i], .right = &forks[(i + 1) % args.count],
+		.tsle = inta_init(0), .eaten = inta_init(0),
+	};
+	return (philo);
+}
+
 t_philo	*construct(t_args args)
 {
+	t_inta64	*mcancel;
 	t_philo		*philos;
 	t_fork		*forks;
 	int			i;
-	t_inta64	*mcancel;
-	int64_t		time;
 
-	time = gettime_now();
 	mcancel = malloc(sizeof (t_inta64) * 2);
 	mcancel[0] = inta_init(0);
 	mcancel[1] = inta_init(1);
-	forks = malloc(args.count * sizeof(t_fork));
 	philos = malloc(args.count * sizeof(t_philo));
+	forks = malloc(args.count * sizeof(t_fork));
 	i = -1;
 	while (++i < args.count)
 	{
 		pthread_mutex_init(&forks[i], NULL);
-		philos[i] = (t_philo){
-			.id = i + 1, .prev_action = E_DIE, .time = time,
-			.cancel = &mcancel[0], .wait = &mcancel[1],
-			.tte = args.tte, .tts = args.tts, .ttd = args.ttd,
-			.left = &forks[i], .right = &forks[(i + 1) % args.count],
-			.tsle = inta_init(0), .eaten = inta_init(0),
-		};
+		philos[i] = create_philo(i, mcancel, forks, args);
 	}
 	return (&philos[0]);
 }

@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/13 14:57:45 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/21 12:27:04 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 13:26:01 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #ifndef PHILOSOPHERS_H
@@ -80,6 +80,7 @@ struct s_philo
 	t_inta64	tsle;
 	t_inta64	eaten;
 	int64_t		time;
+	bool		print;
 
 	int64_t		tte;
 	int64_t		tts;
@@ -88,11 +89,15 @@ struct s_philo
 };
 
 /* init.c */
+/* Create a new philosophers */
+t_philo		create_philo(int i, t_inta64 *mcancel, t_fork *forks, t_args args);
+
 /* Reads input arguments and stores them in t_args.
  * RETURN VALUES:
  *	true if arguments are invalid (exit the program)
  */
 bool		initialise(int32_t argc, char **argv, t_args *args);
+
 /* Generates a new list of intialised philosophers */
 t_philo		*construct(t_args args);
 
@@ -103,6 +108,7 @@ t_philo		*construct(t_args args);
  * Auto prevents printing the same action twice or more in a row.
  */
 void		change_state(t_philo *philo, t_action action);
+void		cycle(t_philo *philo);
 void		*routine(void *ptr);
 
 /* time.c */
@@ -126,6 +132,12 @@ void		cleanup(t_philo *philos);
  * Returns when all threads have closed.
  */
 void		wait_death(t_philo *philos, t_args args);
+
+
+/* measure.c */
+/* Runs a single simulation of a single philo (with two forks) 
+ * to find the runtime accumulation overhead */
+int64_t	getrunexectime(void);
 
 /* atomic.c */
 t_inta64	inta_init(int64_t val);

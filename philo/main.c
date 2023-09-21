@@ -6,7 +6,7 @@
 /*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:41:16 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/21 11:15:17 by clovell          ###   ########.fr       */
+/*   Updated: 2023/09/21 13:26:40 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,9 +25,13 @@ int	main(int argc, char **argv)
 	t_philo	*philos;
 	t_args	args;
 	int32_t	i;
+	int64_t	rte;
 
 	if (initialise(argc - 1, ++argv, &args))
 		return (0);
+	rte = getrunexectime();
+	printf("rte:%ld\n", rte);
+	return (0);
 	philos = construct(args);
 	i = 0;
 	while (i < args.count)
