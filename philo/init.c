@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   init.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: clovell <clovell@student.42adel.org.au>    +#+  +:+       +#+        */
+/*   By: clovell <clovell@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/20 22:17:03 by clovell           #+#    #+#             */
-/*   Updated: 2023/09/21 16:11:52 by clovell          ###   ########.fr       */
+/*   Updated: 2024/02/26 20:56:35 by clovell          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include <stdbool.h>
@@ -65,7 +65,7 @@ t_philo	*construct(t_args args)
 	mcancel[0] = inta_init(0);
 	mcancel[1] = inta_init(1);
 	philos = malloc(args.count * sizeof(t_philo));
-	forks = malloc(args.count + (PH_UEF != 0) * sizeof(t_fork));
+	forks = malloc((args.count + (PH_UEF != 0)) * sizeof(t_fork));
 	i = -1;
 	while (++i < args.count)
 	{

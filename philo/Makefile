@@ -15,8 +15,13 @@ SRCS        := $(SRCS:%=$(SRC_DIR)/%)
 OBJS        = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 DEPS        = $(OBJS:.o=.d)
 
+OPFLAGS = -Ofast
+#-flto -march=native
+
+DFLAGS = $(OPFLAGS) #-fsanitize=addresse -g3
+
 CC          = cc
-CFLAGS      = -Wall -Wextra -Werror -g3 $(DFLAGS)
+CFLAGS      = -Wall -Wextra -Werror  $(DFLAGS)
 CPPFLAGS    = $(addprefix -I,$(INCS)) -MMD -MP
 
 RM          = rm -f
@@ -25,7 +30,7 @@ all: $(NAME)
 
 $(NAME): $(OBJS)
 	@printf "${BLUE}"
-	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(NAME) $(DFLAGS)
+	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) $(DFLAGS) -o $(NAME) 
 
 $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	@printf "${GREEN}"
